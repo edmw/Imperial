@@ -1,8 +1,10 @@
 import Vapor
+import Dispatch
 
 /// The services that are available for use in the application.
 /// Services are added and fetched with the `Service.register` and `.get` static methods.
 fileprivate var services: [String: OAuthService] = [:]
+fileprivate let servicesLock = DispatchQueue(label: "Imperial/Services/Lock")
 
 /// Represents a service that interacts with an OAuth provider.
 public struct OAuthService: Codable, Content {
@@ -44,7 +46,9 @@ public struct OAuthService: Codable, Content {
     ///
     /// - Parameter service: The service to register.
     internal static func register(_ service: OAuthService) {
-        services[service.name] = service
+        servicesLock.sync {
+            services[service.name] = service
+        }
     }
     
     /// Gets a service if it is available for use.
@@ -53,6 +57,8 @@ public struct OAuthService: Codable, Content {
     /// - Returns: The service that matches the name passed in.
     /// - Throws: `ImperialError.noServiceFound` if no service is found with the name passed in.
     public static func get(service name: String)throws -> OAuthService {
-        return try services[name].value(or: ServiceError.noServiceFound(name))
+        return try servicesLock.sync {
+           return try services[name].value(or: ServiceError.noServiceFound(name))
+        }
     }
 }
