@@ -23,6 +23,7 @@ public class GoogleRouter: FederatedServiceRouter {
     }
     
     public func fetchToken(from request: Request)throws -> Future<String> {
+        print("####FETCHTOKEN")
         let code: String
         if let queryCode: String = try request.query.get(at: "code") {
             code = queryCode
@@ -31,7 +32,7 @@ public class GoogleRouter: FederatedServiceRouter {
         } else {
             throw Abort(.badRequest, reason: "Missing 'code' key in URL query")
         }
-        
+        print(code)
         let body = GoogleCallbackBody(code: code, clientId: self.tokens.clientID, clientSecret: self.tokens.clientSecret, redirectURI: self.callbackURL)
         return try body.encode(using: request).flatMap(to: Response.self) { request in
             guard let url = URL(string: self.accessTokenURL) else {
@@ -41,7 +42,8 @@ public class GoogleRouter: FederatedServiceRouter {
             request.http.url = url
             return try request.make(Client.self).send(request)
         }.flatMap(to: String.self) { response in
-            return response.content.get(String.self, at: ["access_token"])
+           print(response.content) 
+           return response.content.get(String.self, at: ["access_token"])
         }
     }
     
